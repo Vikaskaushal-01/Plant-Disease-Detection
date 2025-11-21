@@ -1,0 +1,30 @@
+{
+  "Pepper__bell___Bacterial_spot": [
+    "Isolate affected plants to prevent spread.",
+    "Remove and destroy infected leaves/plant parts.",
+    "Improve airflow and reduce overhead watering.",
+    "Rotate crops and avoid planting same crop repeatedly in same soil.",
+    "Consult local agricultural extension or professional for specific treatment (fungicide/pesticide)."
+  ],
+  "Potato_Bacteria": [
+    "Isolate affected plants to prevent spread.",
+    "Remove and destroy infected leaves/plant parts.",
+    "Improve airflow and reduce overhead watering.",
+    "Rotate crops and avoid planting same crop repeatedly in same soil.",
+    "Consult local agricultural extension or professional for specific treatment (fungicide/pesticide)."
+  ],
+  "Tomato_Bacterial_spot": [
+    "Isolate affected plants to prevent spread.",
+    "Remove and destroy infected leaves/plant parts.",
+    "Improve airflow and reduce overhead watering.",
+    "Rotate crops and avoid planting same crop repeatedly in same soil.",
+    "Consult local agricultural extension or professional for specific treatment (fungicide/pesticide)."
+  ],
+  "cedar_apple_rust": [
+    "Isolate affected plants to prevent spread.",
+    "Remove and destroy infected leaves/plant parts.",
+    "Improve airflow and reduce overhead watering.",
+    "Rotate crops and avoid planting same crop repeatedly in same soil.",
+    "Consult local agricultural extension or professional for specific treatment (fungicide/pesticide)."
+  ]
+}
