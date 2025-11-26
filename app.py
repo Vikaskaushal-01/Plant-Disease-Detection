@@ -63,21 +63,146 @@ def predict_top_k(img_path: Path, k=TOP_K):
 app = Flask(__name__)
 
 # Simple upload form
+
 HTML_PAGE = """
 <!doctype html>
-<title>Plant Disease Detector</title>
-<h1>Upload an image to predict plant disease</h1>
-<form method=post enctype=multipart/form-data action="/predict">
-  <input type=file name=file accept="image/*">
-  <input type=submit value="Upload & Predict">
-</form>
-<hr>
-<p>Or use the JSON API: POST /predict with form-data key 'file'.</p>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PotatoDoc - Leaf Disease Classifier</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f7f7f7;
+        margin: 0;
+        padding: 0;
+    }
+    .container {
+        max-width: 900px;
+        margin: auto;
+        padding: 20px;
+    }
+    h1 {
+        font-size: 26px;
+        margin-bottom: 10px;
+    }
+    .card {
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .upload-section {
+        text-align: center;
+        border: 2px dashed #a0a0a0;
+        padding: 25px;
+        border-radius: 10px;
+        background: #fafafa;
+    }
+    input[type=file] {
+        margin: 15px 0;
+    }
+    button {
+        padding: 10px 18px;
+        font-size: 15px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        background: #4caf50;
+        color: white;
+    }
+    button:hover {
+        background: #43a047;
+    }
+    .result-card {
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .pred-label {
+        font-size: 20px;
+        font-weight: bold;
+        color: #2e7d32;
+    }
+    .prob {
+        color: #555;
+        font-size: 15px;
+    }
+    img.preview {
+        width: 230px;
+        border-radius: 10px;
+        margin-top: 15px;
+    }
+</style>
+
+<script>
+function showPreview(event) {
+    const img = document.getElementById("preview");
+    img.src = URL.createObjectURL(event.target.files[0]);
+    img.style.display = "block";
+}
+</script>
+
+</head>
+<body>
+
+<div class="container">
+    <h1>PotatoDoc — Leaf Disease Classifier</h1>
+
+    <div class="card upload-section">
+        <form method="POST" action="/predict" enctype="multipart/form-data">
+            <p><b>Upload a leaf image</b></p>
+            <input type="file" name="file" accept="image/*" required onchange="showPreview(event)">
+            <br>
+            <img id="preview" class="preview" style="display:none;">
+            <br><br>
+            <button type="submit">Predict Disease</button>
+        </form>
+    </div>
+
+    {% if result %}
+    <div class="result-card">
+        <h2>Prediction</h2>
+        <p class="pred-label">{{ result.top_label }}</p>
+        <p class="prob">Confidence: {{ result.confidence }}%</p>
+
+        <h3>Top Predictions</h3>
+        <ul>
+        {% for item in result.all_preds %}
+            <li>{{ item.label }} — {{ (item.probability * 100) | round(2) }}%</li>
+        {% endfor %}
+        </ul>
+
+        {% if result.precautions %}
+        <h3>Precautions</h3>
+        <ul>
+        {% for p in result.precautions %}
+            <li>{{ p }}</li>
+        {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+</body>
+</html>
 """
+
+# @app.route("/", methods=["GET"])
+# def index():
+#     return render_template_string(HTML_PAGE)
+
+
 
 @app.route("/", methods=["GET"])
 def index():
     return render_template_string(HTML_PAGE)
+
 
 @app.route("/uploads/<filename>")
 def uploaded_file(filename):
@@ -104,13 +229,25 @@ def predict_route():
     except Exception as e:
         return jsonify({"error": f"Failed to run prediction: {e}"}), 500
 
-    top_label = preds[0]["label"]
-    precautions = prec_map.get(top_label, [])
-    response = {
+    top = preds[0]
+    precautions = prec_map.get(top["label"], [])
+
+    # If user is coming from browser, show HTML UI
+    if request.accept_mimetypes.accept_html:
+        return render_template_string(HTML_PAGE, result={
+            "top_label": top["label"],
+            "confidence": round(top["probability"] * 100, 2),
+            "all_preds": preds,
+            "precautions": precautions
+        })
+
+    # Otherwise return JSON for API use
+    return jsonify({
         "image": str(save_path),
         "predictions": preds,
         "precautions": precautions
-    }
+    })
+
     return jsonify(response)
 
 if __name__ == "__main__":
