@@ -1,4 +1,4 @@
-# predict.py
+
 import argparse
 import os
 from pathlib import Path
@@ -51,7 +51,6 @@ def main(args):
         for name, prob in results:
             print(f"  - {name}: {prob*100:.2f}%")
 
-        # Show precautions
         print("\nPrecautions / next steps for predicted class:")
         for step in prec_map.get(top_name, ["No precautions found for this class."]):
             print(" -", step)
