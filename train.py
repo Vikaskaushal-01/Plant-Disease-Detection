@@ -9,8 +9,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLRO
 from utils import save_class_names, load_precautions, save_precautions
 import numpy as np
 
-# --------- USER CONFIG ----------
-DATASET_DIR = "dataset"            # root dataset path (one subfolder per class)
+DATASET_DIR = "dataset"
 BATCH_SIZE = 32
 IMG_SIZE = (224, 224)
 EPOCHS = 25
@@ -19,20 +18,16 @@ SEED = 123
 CHECKPOINT_DIR = "checkpoints"
 SAVED_MODEL_DIR = "saved_model"
 CLASS_NAMES_FILE = "saved_model/class_names.json"
-PRECAUTIONS_FILE = "precautions.json"  # optional; if missing we'll create generic ones
+PRECAUTIONS_FILE = "precautions.json"  
 LR = 1e-4
-BASE_MODEL_TRAINABLE = False   # set True to fine-tune base model after initial training
-# -------------------------------
-
+BASE_MODEL_TRAINABLE = False 
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 os.makedirs(SAVED_MODEL_DIR, exist_ok=True)
 
-# Detect classes from folder names
 print("Listing classes in dataset folder:", DATASET_DIR)
 if not os.path.isdir(DATASET_DIR):
     raise SystemExit(f"Dataset directory '{DATASET_DIR}' not found. Put folders inside it (one folder per class).")
 
-# Use tf.keras.utils.image_dataset_from_directory to build datasets
 train_ds = tf.keras.preprocessing.image_dataset_from_directory(
     DATASET_DIR,
     labels="inferred",
@@ -61,12 +56,10 @@ class_names = train_ds.class_names
 print("Detected classes:", class_names)
 save_class_names(class_names, CLASS_NAMES_FILE)
 
-# Prefetch for performance
 AUTOTUNE = tf.data.AUTOTUNE
 train_ds = train_ds.prefetch(buffer_size=AUTOTUNE)
 val_ds = val_ds.prefetch(buffer_size=AUTOTUNE)
 
-# Data augmentation
 data_augmentation = keras.Sequential(
     [
         layers.RandomFlip("horizontal"),
@@ -77,7 +70,6 @@ data_augmentation = keras.Sequential(
     name="data_augmentation"
 )
 
-# Build model (transfer learning)
 base_model = tf.keras.applications.EfficientNetB0(
     include_top=False,
     input_shape=(IMG_SIZE[0], IMG_SIZE[1], 3),
@@ -105,7 +97,6 @@ model.compile(
 
 model.summary()
 
-# Callbacks
 checkpoint_path = os.path.join(CHECKPOINT_DIR, "best_model.h5")
 callbacks = [
     ModelCheckpoint(checkpoint_path, monitor="val_accuracy", save_best_only=True, mode="max"),
@@ -113,8 +104,6 @@ callbacks = [
     ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=3, min_lr=1e-7)
 ]
 
-# Compute class weights (optional)
-# Flatten labels to compute frequency
 def compute_class_weights(ds):
     labels = []
     for x,y in ds.unbatch():
@@ -131,7 +120,6 @@ except Exception as e:
     print("Could not compute class weights, continuing without them. Error:", e)
     class_weight = None
 
-# Train
 history = model.fit(
     train_ds,
     validation_data=val_ds,
@@ -140,15 +128,13 @@ history = model.fit(
     class_weight=class_weight
 )
 
-# Save final model (best was already saved by ModelCheckpoint)
 model.save(os.path.join(SAVED_MODEL_DIR, "final_model.h5"))
 
-# Prepare precautions: if the user provided precautions.json, keep/merge; otherwise generate generic ones
 prec_map = load_precautions(PRECAUTIONS_FILE)
 changed = False
 for cls in class_names:
     if cls not in prec_map:
-        # generic precautions (safe, non-medical/agrochemical-specific)
+
         prec_map[cls] = [
             "Isolate affected plants to prevent spread.",
             "Remove and destroy infected leaves/plant parts.",
