@@ -8,7 +8,6 @@ import numpy as np
 from PIL import Image
 import json
 
-# ---------- CONFIG ----------
 MODEL_PATH = "saved_model/final_model.h5"
 CLASS_NAMES_FILE = "saved_model/class_names.json"
 PRECAUTIONS_FILE = "precautions.json"
@@ -16,29 +15,25 @@ UPLOAD_DIR = "uploads"
 ALLOWED_EXT = {".jpg", ".jpeg", ".png"}
 IMG_SIZE = (224, 224)   # must match training
 TOP_K = 3
-# ----------------------------
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# Load model and metadata once
 if not Path(MODEL_PATH).exists():
     raise SystemExit(f"Model file not found at {MODEL_PATH}. Run your training script first.")
 
 model = keras.models.load_model(MODEL_PATH)
-# Load class names
+
 if not Path(CLASS_NAMES_FILE).exists():
     raise SystemExit(f"Class names file not found at {CLASS_NAMES_FILE}. Train or re-save class mapping.")
 
 with open(CLASS_NAMES_FILE, "r", encoding="utf-8") as f:
     class_names = json.load(f)
 
-# Load precautions (optional)
 prec_map = {}
 if Path(PRECAUTIONS_FILE).exists():
     with open(PRECAUTIONS_FILE, "r", encoding="utf-8") as f:
         prec_map = json.load(f)
 
-# Minimal image preprocessing (same as training)
 def preprocess_image(p: Path):
     img = Image.open(p).convert("RGB")
     img = img.resize(IMG_SIZE)
@@ -46,7 +41,6 @@ def preprocess_image(p: Path):
     arr = np.expand_dims(arr, 0)  # batch dim
     return arr
 
-# Get top-k predictions and return as list of dicts
 def predict_top_k(img_path: Path, k=TOP_K):
     x = preprocess_image(img_path)
     preds = model.predict(x, verbose=0)[0]  # shape: (num_classes,)
@@ -59,10 +53,7 @@ def predict_top_k(img_path: Path, k=TOP_K):
         })
     return results
 
-# Flask app
 app = Flask(__name__)
-
-# Simple upload form
 
 HTML_PAGE = """
 <!doctype html>
@@ -193,12 +184,6 @@ function showPreview(event) {
 </html>
 """
 
-# @app.route("/", methods=["GET"])
-# def index():
-#     return render_template_string(HTML_PAGE)
-
-
-
 @app.route("/", methods=["GET"])
 def index():
     return render_template_string(HTML_PAGE)
@@ -232,7 +217,6 @@ def predict_route():
     top = preds[0]
     precautions = prec_map.get(top["label"], [])
 
-    # If user is coming from browser, show HTML UI
     if request.accept_mimetypes.accept_html:
         return render_template_string(HTML_PAGE, result={
             "top_label": top["label"],
@@ -241,7 +225,6 @@ def predict_route():
             "precautions": precautions
         })
 
-    # Otherwise return JSON for API use
     return jsonify({
         "image": str(save_path),
         "predictions": preds,
@@ -253,3 +236,4 @@ def predict_route():
 if __name__ == "__main__":
     # Use host 0.0.0.0 to allow external access if needed; change debug=False for production
     app.run(host="0.0.0.0", port=5000, debug=True)
+
